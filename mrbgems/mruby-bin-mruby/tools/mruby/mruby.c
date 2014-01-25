@@ -1,13 +1,11 @@
-#include "mruby.h"
-#include "mruby/proc.h"
-#include "mruby/array.h"
-#include "mruby/string.h"
-#include "mruby/compile.h"
-#include "mruby/dump.h"
-#include "mruby/variable.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "mruby.h"
+#include "mruby/array.h"
+#include "mruby/compile.h"
+#include "mruby/dump.h"
+#include "mruby/variable.h"
 
 #ifndef ENABLE_STDIO
 static void
@@ -208,7 +206,7 @@ main(int argc, char **argv)
     v = mrb_load_irep_file_cxt(mrb, args.rfp, c);
   }
   else {
-    mrb_sym zero_sym = mrb_intern2(mrb, "$0", 2);
+    mrb_sym zero_sym = mrb_intern_lit(mrb, "$0");
 
     if (args.rfp) {
       char *cmdline;

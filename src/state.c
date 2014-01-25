@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "mruby.h"
-#include "mruby/class.h"
 #include "mruby/irep.h"
 #include "mruby/variable.h"
 #include "mruby/debug.h"
@@ -41,6 +40,11 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb->ud = ud;
   mrb->allocf = f;
   mrb->current_white_part = MRB_GC_WHITE_A;
+
+#ifndef MRB_GC_FIXED_ARENA
+  mrb->arena = (struct RBasic**)mrb_malloc(mrb, sizeof(struct RBasic*)*MRB_GC_ARENA_SIZE);
+  mrb->arena_capa = MRB_GC_ARENA_SIZE;
+#endif
 
   mrb_init_heap(mrb);
   mrb->c = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
@@ -129,6 +133,19 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
 
   if (!(irep->flags & MRB_ISEQ_NO_FREE))
     mrb_free(mrb, irep->iseq);
+  for (i=0; i<irep->plen; i++) {
+    if (mrb_type(irep->pool[i]) == MRB_TT_STRING) {
+      if ((mrb_str_ptr(irep->pool[i])->flags & MRB_STR_NOFREE) == 0) {
+        mrb_free(mrb, mrb_str_ptr(irep->pool[i])->ptr);
+      }
+      mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
+    }
+#ifdef MRB_WORD_BOXING
+    else if (mrb_type(irep->pool[i]) == MRB_TT_FLOAT) {
+      mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
+    }
+#endif
+  }
   mrb_free(mrb, irep->pool);
   mrb_free(mrb, irep->syms);
   for (i=0; i<irep->rlen; i++) {
@@ -139,6 +156,33 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   mrb_free(mrb, irep->lines);
   mrb_debug_info_free(mrb, irep->debug_info);
   mrb_free(mrb, irep);
+}
+
+mrb_value
+mrb_str_pool(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  struct RString *ns;
+  mrb_int len;
+
+  ns = (struct RString *)mrb_malloc(mrb, sizeof(struct RString));
+  ns->tt = MRB_TT_STRING;
+  ns->c = mrb->string_class;
+
+  len = s->len;
+  ns->len = len;
+  if (s->flags & MRB_STR_NOFREE) {
+    ns->ptr = s->ptr;
+    ns->flags = MRB_STR_NOFREE;
+  }
+  else {
+    ns->ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
+    if (s->ptr) {
+      memcpy(ns->ptr, s->ptr, len);
+    }
+    ns->ptr[len] = '\0';
+  }
+  return mrb_obj_value(ns);
 }
 
 void
@@ -163,12 +207,11 @@ mrb_close(mrb_state *mrb)
   mrb_free_symtbl(mrb);
   mrb_free_heap(mrb);
   mrb_alloca_free(mrb);
+#ifndef MRB_GC_FIXED_ARENA
+  mrb_free(mrb, mrb->arena);
+#endif
   mrb_free(mrb, mrb);
 }
-
-#ifndef MRB_IREP_ARRAY_INIT_SIZE
-# define MRB_IREP_ARRAY_INIT_SIZE (256u)
-#endif
 
 mrb_irep*
 mrb_add_irep(mrb_state *mrb)

@@ -8,21 +8,17 @@
 
 #include <stdlib.h>
 #include <string.h>
-
-#include <mruby.h>
+#include "mruby.h"
 #include "mruby/array.h"
-#include <mruby/proc.h>
-#include <mruby/data.h>
-#include <mruby/compile.h>
+#include "mruby/proc.h"
+#include "mruby/compile.h"
+#include "mruby/string.h"
+
 #ifdef ENABLE_READLINE
 #include <limits.h>
 #include <readline/readline.h>
 #include <readline/history.h>
-#endif
-#include <mruby/string.h>
 
-
-#ifdef ENABLE_READLINE
 static const char *history_file_name = ".mirb_history";
 char history_path[PATH_MAX];
 #endif
@@ -384,7 +380,7 @@ main(int argc, char **argv)
         }
         else {
           /* no */
-          if (!mrb_respond_to(mrb, result, mrb_intern2(mrb, "inspect", 7))){
+          if (!mrb_respond_to(mrb, result, mrb_intern_lit(mrb, "inspect"))){
             result = mrb_any_to_s(mrb,result);
           }
           p(mrb, result, 1);
