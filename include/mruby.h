@@ -63,6 +63,7 @@ typedef struct {
   int ridx;
   int eidx;
   struct REnv *env;
+  void *dummy[3];
 } mrb_callinfo;
 
 enum mrb_fiber_state {
@@ -79,7 +80,7 @@ struct mrb_context {
   mrb_value *stbase, *stend;
 
   mrb_callinfo *ci;
-  mrb_callinfo *cibase, *ciend;
+  mrb_callinfo *cibase, *ciend, *cibase_org;;
 
   mrb_code **rescue;                      /* exception handler stack */
   int rsize;

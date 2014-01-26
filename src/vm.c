@@ -98,6 +98,9 @@ static void
 stack_init(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
+#ifdef MRB_CALLINFO_ALIGNMENT
+  size_t align_byte = 1 << MRB_CALLINFO_ALIGNMENT;
+#endif
 
   /* mrb_assert(mrb->stack == NULL); */
   c->stbase = (mrb_value *)mrb_calloc(mrb, STACK_INIT_SIZE, sizeof(mrb_value));
@@ -105,7 +108,13 @@ stack_init(mrb_state *mrb)
   c->stack = c->stbase;
 
   /* mrb_assert(ci == NULL); */
-  c->cibase = (mrb_callinfo *)mrb_calloc(mrb, CALLINFO_INIT_SIZE, sizeof(mrb_callinfo));
+#ifdef MRB_CALLINFO_ALIGNMENT
+  c->cibase_org = (mrb_callinfo *)mrb_calloc(mrb, CALLINFO_INIT_SIZE, sizeof(mrb_callinfo) + align_byte);
+  c->cibase = (mrb_callinfo *)((((int)(c->cibase_org)) & (~(align_byte - 1))) + align_byte);
+#else
+  c->cibase_org = (mrb_callinfo *)mrb_calloc(mrb, CALLINFO_INIT_SIZE, sizeof(mrb_callinfo));
+  c->cibase = c->cibase_org;
+#endif
   c->ciend = c->cibase + CALLINFO_INIT_SIZE;
   c->ci = c->cibase;
   c->ci->target_class = mrb->object_class;
@@ -218,8 +227,16 @@ cipush(mrb_state *mrb)
 
   if (ci + 1 == c->ciend) {
     size_t size = ci - c->cibase;
+#ifdef MRB_CALLINFO_ALIGNMENT
+    size_t align_byte = 1 << MRB_CALLINFO_ALIGNMENT;
 
-    c->cibase = (mrb_callinfo *)mrb_realloc(mrb, c->cibase, sizeof(mrb_callinfo)*size*2);
+    c->cibase_org = (mrb_callinfo *)mrb_realloc(mrb, c->cibase_org, sizeof(mrb_callinfo)*size*2 + align_byte);
+    c->cibase = (mrb_callinfo *)((((int)(c->cibase_org)) & (~(align_byte - 1))) + align_byte);
+#else
+    c->cibase_org = (mrb_callinfo *)mrb_realloc(mrb, c->cibase_org, sizeof(mrb_callinfo)*size*2);
+    c->cibase = c->cibase_org;
+#endif
+
     c->ci = c->cibase + size;
     c->ciend = c->cibase + size * 2;
   }

@@ -41,6 +41,11 @@
 /* turn off generational GC by default */
 //#define MRB_GC_TURN_OFF_GENERATIONAL
 
+/* alocated callinfo address alignment  */
+/*  (multiple of (1 << MRB_CALLINFO_ALIGNMENT) */
+/* For x86, 6 is fast but about 64bytes loss. */
+#define MRB_CALLINFO_ALIGNMENT 6
+
 /* default size of khash table bucket */
 //#define KHASH_DEFAULT_SIZE 32
 
