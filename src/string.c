@@ -132,7 +132,7 @@ str_new(mrb_state *mrb, const char *p, mrb_int len)
   return s;
 }
 
-void
+static void
 str_with_class(mrb_state *mrb, struct RString *s, mrb_value obj)
 {
   s->c = mrb_str_ptr(obj)->c;
@@ -763,12 +763,10 @@ num_index:
       /* check if indx is Range */
       {
         mrb_int beg, len;
-        mrb_value tmp;
 
         len = RSTRING_LEN(str);
         if (mrb_range_beg_len(mrb, indx, &beg, &len, len)) {
-          tmp = mrb_str_subseq(mrb, str, beg, len);
-          return tmp;
+          return mrb_str_subseq(mrb, str, beg, len);
         }
         else {
           return mrb_nil_value();
@@ -2509,8 +2507,6 @@ mrb_init_string(mrb_state *mrb)
 
   s = mrb->string_class = mrb_define_class(mrb, "String", mrb->object_class);
   MRB_SET_INSTANCE_TT(s, MRB_TT_STRING);
-  mrb_include_module(mrb, s, mrb_class_get(mrb, "Comparable"));
-
 
   mrb_define_method(mrb, s, "bytesize",        mrb_str_bytesize,        MRB_ARGS_NONE());
 

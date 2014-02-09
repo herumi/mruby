@@ -376,7 +376,7 @@ range_eql(mrb_state *mrb, mrb_value range)
 }
 
 /* 15.2.14.4.15(x) */
-mrb_value
+static mrb_value
 range_initialize_copy(mrb_state *mrb, mrb_value copy)
 {
   mrb_value src;
@@ -402,8 +402,6 @@ mrb_init_range(mrb_state *mrb)
 
   r = mrb_define_class(mrb, "Range", mrb->object_class);
   MRB_SET_INSTANCE_TT(r, MRB_TT_RANGE);
-
-  mrb_include_module(mrb, r, mrb_class_get(mrb, "Enumerable"));
 
   mrb_define_method(mrb, r, "begin",           mrb_range_beg,         MRB_ARGS_NONE()); /* 15.2.14.4.3  */
   mrb_define_method(mrb, r, "end",             mrb_range_end,         MRB_ARGS_NONE()); /* 15.2.14.4.5  */
